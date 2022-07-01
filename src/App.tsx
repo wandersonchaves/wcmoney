@@ -1,11 +1,20 @@
-import React from 'react';
+import styled from "styled-components";
+
+const Title = styled.h1`
+  color: #8257e6;
+  font-size: 64px;
+
+  button: {
+    background: #000;
+  }
+`;
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>HOME</h1>
-      </header>
+      <Title>
+        App <button>Salvar</button>
+      </Title>
     </div>
   );
 }
