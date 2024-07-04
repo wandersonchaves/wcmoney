@@ -1,85 +1,49 @@
-import { useContext } from "react";
-import incomeImg from "../../assets/income.svg";
-import outcomeImg from "../../assets/outcome.svg";
-import totalImg from "../../assets/total.svg";
-import { useTransactions } from "../../hooks/useTransactions";
+import {ArrowCircleDown, ArrowCircleUp, CurrencyDollar} from 'phosphor-react'
+import {SummaryCard, SummaryContainer} from './styles'
 
-import { Container } from "./styles";
+import {priceFormatter} from '../../utils/formatter'
+import {useSummary} from '../../hooks/useSummary'
 
 export function Summary() {
-  const { transactions } = useTransactions();
-
-  // const totalDeposits = transactions.reduce((acc, transaction) => {
-  //   if (transaction.type === "deposit") {
-  //     return acc + transaction.amount;
-  //   }
-
-  //   return acc;
-  // }, 0);
-
-  const summary = transactions.reduce(
-    (acc, transaction) => {
-      if (transaction.type === "deposit") {
-        acc.deposits += transaction.amount;
-        acc.total += transaction.amount;
-      } else {
-        acc.withdraws += transaction.amount;
-        acc.total -= transaction.amount;
-      }
-
-      return acc;
-    },
-    {
-      deposits: 0,
-      withdraws: 0,
-      total: 0,
-    }
-  );
+  const summary = useSummary()
 
   return (
-    <Container>
-      <div>
+    <SummaryContainer>
+      <SummaryCard>
         <header>
-          <p>Entradas</p>
-          <img src={incomeImg} alt="Entradas" />
+          <span>Entradas</span>
+          <ArrowCircleUp
+            size={32}
+            color="#00b37e"
+          />
         </header>
 
-        <strong>
-          {new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          }).format(summary.deposits)}
-        </strong>
-      </div>
+        <strong>{priceFormatter.format(summary.income)}</strong>
+      </SummaryCard>
 
-      <div>
+      <SummaryCard>
         <header>
-          <p>Saidas</p>
-          <img src={outcomeImg} alt="Saidas" />
+          <span>Saídas</span>
+          <ArrowCircleDown
+            size={32}
+            color="#f75a68"
+          />
         </header>
 
-        <strong>
-          {"- "}
-          {new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          }).format(summary.withdraws)}
-        </strong>
-      </div>
+        <strong>{priceFormatter.format(summary.outcome)}</strong>
+      </SummaryCard>
 
-      <div className="highlight-background">
+      <SummaryCard variant="green">
         <header>
-          <p>Total</p>
-          <img src={totalImg} alt="Total" />
+          <span>Total</span>
+          <CurrencyDollar
+            size={32}
+            color="#fff"
+          />
         </header>
 
-        <strong>
-          {new Intl.NumberFormat("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          }).format(summary.total)}
-        </strong>
-      </div>
-    </Container>
-  );
+        <strong>{priceFormatter.format(summary.total)}</strong>
+      </SummaryCard>
+    </SummaryContainer>
+  )
 }

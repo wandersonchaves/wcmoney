@@ -1,105 +1,130 @@
-import Modal from "react-modal";
-import { Container, RadioBox, TransactionTypeContainer } from "./styles";
-import incomeImg from "../../assets/income.svg";
-import outcomeImg from "../../assets/outcome.svg";
-import closeImg from "../../assets/close.svg";
-import { FormEvent, useContext, useState } from "react";
-import { api } from "../../services/api";
-import { useTransactions } from "../../hooks/useTransactions";
+import * as Dialog from '@radix-ui/react-dialog'
+import * as z from 'zod'
 
-interface NewTransactionModalProps {
-  isOpen: boolean;
-  onRequestClose: () => void;
-}
+import {ArrowCircleDown, ArrowCircleUp, X} from 'phosphor-react'
+import {
+  CloseButton,
+  Content,
+  Overlay,
+  TransactionType,
+  TransactionTypeButton,
+} from './styles'
+import {Controller, useForm} from 'react-hook-form'
 
-export function NewTransactionModal({
-  isOpen,
-  onRequestClose,
-}: NewTransactionModalProps) {
-  const { createTransaction } = useTransactions();
+import {TransactionsContext} from '../../contexts/TransactionsContext'
+import {useContextSelector} from 'use-context-selector'
+import {zodResolver} from '@hookform/resolvers/zod'
 
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState(0);
-  const [category, setCategory] = useState("");
-  const [type, setType] = useState("deposit");
+const newTransactionFormSchema = z.object({
+  description: z.string(),
+  price: z.number(),
+  category: z.string(),
+  type: z.enum(['income', 'outcome']),
+})
 
-  async function handleCreateNewTransaction(event: FormEvent) {
-    event.preventDefault();
+type NewTransactionFormInputs = z.infer<typeof newTransactionFormSchema>
 
-    await createTransaction({ title, amount, category, type });
+export function NewTransactionModal() {
+  const createTransaction = useContextSelector(
+    TransactionsContext,
+    (context) => {
+      return context.createTransaction
+    },
+  )
 
-    setTitle("");
-    setAmount(0);
-    setCategory("");
-    setType("deposit");
-    onRequestClose();
+  const {
+    control,
+    register,
+    handleSubmit,
+    formState: {isSubmitting},
+    reset,
+  } = useForm<NewTransactionFormInputs>({
+    resolver: zodResolver(newTransactionFormSchema),
+    defaultValues: {
+      type: 'income',
+    },
+  })
+
+  async function handleCreateNewTransaction(data: NewTransactionFormInputs) {
+    const {description, price, category, type} = data
+
+    await createTransaction({
+      description,
+      price,
+      category,
+      type,
+    })
+
+    reset()
   }
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onRequestClose={onRequestClose}
-      overlayClassName="react-modal-overlay"
-      className="react-modal-content"
-    >
-      <button
-        type="button"
-        onClick={onRequestClose}
-        className="react-modal-close"
-      >
-        <img src={closeImg} alt="Fechar modal" />
-      </button>
+    <Dialog.Portal>
+      <Overlay />
 
-      <Container onSubmit={handleCreateNewTransaction}>
-        <h2>Cadastrar transacao</h2>
+      <Content>
+        <Dialog.Title>Nova Transação</Dialog.Title>
 
-        <input
-          placeholder="Titulo"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-        />
+        <CloseButton>
+          <X size={24} />
+        </CloseButton>
 
-        <input
-          type="number"
-          placeholder="Valor"
-          value={amount}
-          onChange={(event) => setAmount(Number(event.target.value))}
-        />
+        <form onSubmit={handleSubmit(handleCreateNewTransaction)}>
+          <input
+            type="text"
+            placeholder="Descrição"
+            required
+            {...register('description')}
+          />
+          <input
+            type="number"
+            placeholder="Preço"
+            required
+            {...register('price', {valueAsNumber: true})}
+          />
+          <input
+            type="text"
+            placeholder="Categoria"
+            required
+            {...register('category')}
+          />
 
-        <TransactionTypeContainer>
-          <RadioBox
-            type="button"
-            onClick={() => {
-              setType("deposit");
+          <Controller
+            control={control}
+            name="type"
+            render={({field}) => {
+              return (
+                <TransactionType
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <TransactionTypeButton
+                    variant="income"
+                    value="income"
+                  >
+                    <ArrowCircleUp size={24} />
+                    Entrada
+                  </TransactionTypeButton>
+                  <TransactionTypeButton
+                    variant="outcome"
+                    value="outcome"
+                  >
+                    <ArrowCircleDown size={24} />
+                    Saída
+                  </TransactionTypeButton>
+                </TransactionType>
+              )
             }}
-            isActive={type === "deposit"}
-            activeColor="green"
+          />
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
           >
-            <img src={incomeImg} alt="Entrada" />
-            <span>Entrada</span>
-          </RadioBox>
-
-          <RadioBox
-            type="button"
-            onClick={() => {
-              setType("withdraw");
-            }}
-            isActive={type === "withdraw"}
-            activeColor="red"
-          >
-            <img src={outcomeImg} alt="Saida" />
-            <span>Saida</span>
-          </RadioBox>
-        </TransactionTypeContainer>
-
-        <input
-          placeholder="Categoria"
-          value={category}
-          onChange={(event) => setCategory(event.target.value)}
-        />
-
-        <button type="submit">Cadastrar</button>
-      </Container>
-    </Modal>
-  );
+            Cadastrar
+          </button>
+        </form>
+      </Content>
+    </Dialog.Portal>
+  )
 }
